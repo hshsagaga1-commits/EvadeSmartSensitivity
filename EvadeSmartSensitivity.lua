@@ -10,7 +10,7 @@ local player = Players.LocalPlayer
 assert(player, "Execute no cliente.")
 
 local ENV = (type(getgenv) == "function" and getgenv()) or _G
-local VERSION = "EvadeSmartSensitivity-1.0"
+local VERSION = "EvadeSmartSensitivity-1.1"
 local GUI_NAME = "EvadeSmartSensitivityGui"
 local RENDER_NAME = "EvadeSmartSensitivityRender"
 
@@ -20,8 +20,8 @@ if type(previousCleanup) == "function" then
 end
 
 local enabled = true
-local baseMultiplier = math.clamp(tonumber(ENV.ESS_Base) or 0.65, 0.25, 1.0)
-local maxMultiplier = math.clamp(tonumber(ENV.ESS_Max) or 2.2, 1.0, 3.0)
+local baseMultiplier = math.clamp(tonumber(ENV.ESS_Base) or 0.5, 0.5, 0.8)
+local maxMultiplier = math.clamp(tonumber(ENV.ESS_Max) or 0.8, baseMultiplier, 0.8)
 local speedThreshold = math.clamp(tonumber(ENV.ESS_Threshold) or 1.35, 0.5, 3.0)
 local smoothedSpeed = 0
 local currentMultiplier = baseMultiplier
@@ -156,24 +156,24 @@ toggleButton.Activated:Connect(function()
 end)
 
 baseDown.Activated:Connect(function()
-    baseMultiplier = clamp(math.floor((baseMultiplier - 0.05) * 100 + 0.5) / 100, 0.25, 1.0)
-    if baseMultiplier >= maxMultiplier then maxMultiplier = math.min(3.0, baseMultiplier + 0.1) end
+    baseMultiplier = clamp(math.floor((baseMultiplier - 0.05) * 100 + 0.5) / 100, 0.5, 0.8)
+    if baseMultiplier > maxMultiplier then maxMultiplier = baseMultiplier end
     ENV.ESS_Base, ENV.ESS_Max = baseMultiplier, maxMultiplier
     refresh()
 end)
 baseUp.Activated:Connect(function()
-    baseMultiplier = clamp(math.floor((baseMultiplier + 0.05) * 100 + 0.5) / 100, 0.25, 1.0)
-    if baseMultiplier >= maxMultiplier then maxMultiplier = math.min(3.0, baseMultiplier + 0.1) end
+    baseMultiplier = clamp(math.floor((baseMultiplier + 0.05) * 100 + 0.5) / 100, 0.5, 0.8)
+    if baseMultiplier > maxMultiplier then maxMultiplier = baseMultiplier end
     ENV.ESS_Base, ENV.ESS_Max = baseMultiplier, maxMultiplier
     refresh()
 end)
 maxDown.Activated:Connect(function()
-    maxMultiplier = clamp(math.floor((maxMultiplier - 0.1) * 10 + 0.5) / 10, math.max(1.0, baseMultiplier + 0.1), 3.0)
+    maxMultiplier = clamp(math.floor((maxMultiplier - 0.05) * 100 + 0.5) / 100, baseMultiplier, 0.8)
     ENV.ESS_Base, ENV.ESS_Max = baseMultiplier, maxMultiplier
     refresh()
 end)
 maxUp.Activated:Connect(function()
-    maxMultiplier = clamp(math.floor((maxMultiplier + 0.1) * 10 + 0.5) / 10, math.max(1.0, baseMultiplier + 0.1), 3.0)
+    maxMultiplier = clamp(math.floor((maxMultiplier + 0.05) * 100 + 0.5) / 100, baseMultiplier, 0.8)
     ENV.ESS_Base, ENV.ESS_Max = baseMultiplier, maxMultiplier
     refresh()
 end)
@@ -266,8 +266,8 @@ end)
 ENV.EvadeSmartSensitivity = {
     Version = VERSION,
     SetEnabled = function(value) enabled = value ~= false; lastRawCFrame, lastOutputRotation = nil, nil; refresh() end,
-    SetBase = function(value) baseMultiplier = clamp(tonumber(value) or baseMultiplier, 0.25, 1.0); if baseMultiplier >= maxMultiplier then maxMultiplier = math.min(3.0, baseMultiplier + 0.1) end; refresh(); return baseMultiplier end,
-    SetMax = function(value) maxMultiplier = clamp(tonumber(value) or maxMultiplier, math.max(1.0, baseMultiplier + 0.1), 3.0); refresh(); return maxMultiplier end,
+    SetBase = function(value) baseMultiplier = clamp(tonumber(value) or baseMultiplier, 0.5, 0.8); if baseMultiplier > maxMultiplier then maxMultiplier = baseMultiplier end; refresh(); return baseMultiplier end,
+    SetMax = function(value) maxMultiplier = clamp(tonumber(value) or maxMultiplier, baseMultiplier, 0.8); refresh(); return maxMultiplier end,
     Cleanup = cleanup,
 }
 ENV.__EvadeSmartSensitivityCleanup = cleanup
