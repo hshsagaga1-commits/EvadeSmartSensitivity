@@ -1,4 +1,4 @@
--- Delta FPS Probe (iOS) v1.0 -- READ ONLY BY DEFAULT
+-- Delta FPS Probe (iOS) v1.1 -- READ ONLY BY DEFAULT
 -- Measures RunService callback rates, NOT distinct GPU frames.
 -- The 120/240 buttons call executor-provided setfpscap() only when available.
 -- Do not mistake reported 120 callbacks for 120 unique GPU-rendered frames.
@@ -85,7 +85,7 @@ end
 local request120=btn('Request 120',12,139,130)
 local request240=btn('Request 240',153,139,130)
 local restore=btn('Restore cap',12,180,130)
-local export=btn('Save CSV',153,180,130)
+local export=btn('Copy report',153,180,130)
 local status=create('TextLabel',{
   Size=UDim2.new(1,-24,0,23),Position=UDim2.fromOffset(12,221),
   BackgroundTransparency=1,Text='Observing only. No FPS cap changed.',
@@ -122,7 +122,7 @@ bind(RunService.Heartbeat,function() counters.heartbeat=counters.heartbeat+1 end
 if RunService.PreSimulation then
   bind(RunService.PreSimulation,function() counters.presim=counters.presim+1 end)
 end
-local rows={'elapsed_s,render_event_fps,heartbeat_fps,presimulation_fps,cap_request'}
+local samples={}
 local started=os.clock()
 local capRequest='none'
 local function requestCap(n)
@@ -148,14 +148,46 @@ bind(restore.MouseButton1Click,function()
   capRequest='restored';modifiedCap=false
   status.Text='Previous cap restored (or fallback 60).'
 end)
+-- Copy a readable report directly to the clipboard (no files required).
+local function buildReport()
+  local lines={
+    'Delta FPS Probe v1.1 - Relatorio',
+    'Tempo desde inicio: '..string.format('%.1f s',os.clock()-started),
+    'Evento de render: '..renderName,
+    'Cap inicial: '..(havePrevCap and tostring(prevCap) or 'indisponivel'),
+    'Cap solicitado: '..capRequest,
+    'Amostras: '..tostring(#samples),
+    '',
+    'Medicoes (cada amostra dura aproximadamente 3 segundos):'
+  }
+  if #samples==0 then
+    lines[#lines+1]='Ainda sem amostras. Aguarde 3 segundos e copie novamente.'
+  else
+    for i,item in ipairs(samples) do
+      lines[#lines+1]=string.format(
+        '#%d | t=%.1fs | %s=%.1f/s | Heartbeat=%.1f/s | PreSimulation=%.1f/s | pedido=%s',
+        i,item.elapsed,renderName,item.render,item.heartbeat,item.presim,item.cap
+      )
+    end
+  end
+  lines[#lines+1]=''
+  lines[#lines+1]='ATENCAO: estes sao callbacks do RunService, NAO quadros GPU distintos.'
+  return table.concat(lines,'\n')
+end
 bind(export.MouseButton1Click,function()
-  if type(writefile)~='function' then
-    status.Text='writefile() unavailable: CSV not saved.'
+  local copyFn=nil
+  if type(setclipboard)=='function' then
+    copyFn=setclipboard
+  elseif type(toclipboard)=='function' then
+    copyFn=toclipboard
+  end
+  if not copyFn then
+    status.Text='Clipboard indisponivel neste executor.'
     return
   end
-  local name='DeltaFPSProbe_'..tostring(math.floor(os.clock()*1000))..'.csv'
-  local ok,err=pcall(writefile,name,table.concat(rows,'\n')..'\n')
-  status.Text=ok and ('Saved '..name) or ('Write failed: '..tostring(err):sub(1,45))
+  local ok,err=pcall(copyFn,buildReport())
+  status.Text=ok and ('Report copied! ('..tostring(#samples)..' samples)')
+    or ('Copy failed: '..tostring(err):sub(1,38))
 end)
 local function shutdown()
   if not active then return end
@@ -180,7 +212,7 @@ task.spawn(function()
       local r=counters.render/dt;local h=counters.heartbeat/dt;local s=counters.presim/dt
       rate.Text=string.format('%s: %.1f /s',renderName,r)
       extra.Text=string.format('Heartbeat: %.1f/s    PreSimulation: %.1f/s\nMeasured over %.1f seconds; not GPU FPS.',h,s,dt)
-      rows[#rows+1]=string.format('%.2f,%.3f,%.3f,%.3f,%s',now-started,r,h,s,capRequest)
+      samples[#samples+1]={elapsed=now-started,render=r,heartbeat=h,presim=s,cap=capRequest}
     end
     counters.render=0;counters.heartbeat=0;counters.presim=0;last=now
   end
