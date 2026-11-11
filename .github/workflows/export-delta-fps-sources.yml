@@ -1,0 +1,26 @@
+name: Export FPS diagnostics source snapshot
+on:
+  push:
+    paths:
+      - '.github/workflows/export-delta-fps-sources.yml'
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package diagnostic sources
+        run: |
+          test -f diagnostics/DeltaFPS_Probe_v1_0.lua
+          test -f diagnostics/DeltaFPS_DeepProbe_v2_0.lua
+          test -f diagnostics/native/DeltaFrameTrace.m
+          python3 - <<'PY'
+          import pathlib,hashlib
+          for p in sorted(pathlib.Path("diagnostics").rglob("*")):
+            if p.is_file():
+              print(hashlib.sha256(p.read_bytes()).hexdigest(),p)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DeltaFPS-source-snapshot
+          path: diagnostics/
+          retention-days: 30
