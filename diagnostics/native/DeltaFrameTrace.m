@@ -99,6 +99,7 @@ static void installHooks(void) {
 @interface DeltaTracePanel : NSObject
 @property (nonatomic,strong) UIView *panel;
 @property (nonatomic,strong) UILabel *stats;
+@property (nonatomic,strong) UIButton *toggleButton;
 @property (nonatomic,strong) NSMutableArray<NSString *> *lines;
 @property (nonatomic,assign) CFTimeInterval last;
 @property (nonatomic,assign) CFTimeInterval begun;
@@ -142,14 +143,16 @@ static void installHooks(void) {
     [v addSubview:label];self.stats=label;
     [v addSubview:[self button:@"Copy report" x:9 target:@selector(copyReport)]];
     UIButton *min=[self button:@"Minimize" x:124 target:@selector(toggleCompact)];
-    [v addSubview:min];
+    [v addSubview:min];self.toggleButton=min;
     [win addSubview:v];self.panel=v;
 }
 - (void)toggleCompact {
     self.compact=!self.compact;
     self.panel.frame=CGRectMake(self.panel.frame.origin.x,self.panel.frame.origin.y,252,self.compact?34:88);
-    for(UIView *view in self.panel.subviews) if([view isKindOfClass:UIButton.class])view.hidden=self.compact;
-    self.stats.frame=CGRectMake(9,4,234,self.compact?26:41);
+    for(UIView *view in self.panel.subviews) if([view isKindOfClass:UIButton.class] && view!=self.toggleButton)view.hidden=self.compact;
+    self.toggleButton.frame=CGRectMake(self.compact?191:124,self.compact?3:52,self.compact?53:106,28);
+    [self.toggleButton setTitle:self.compact?@"Show":@"Minimize" forState:UIControlStateNormal];
+    self.stats.frame=CGRectMake(9,4,self.compact?178:234,self.compact?26:41);
 }
 - (void)copyReport {
     NSMutableArray *report=[NSMutableArray arrayWithObjects:
