@@ -1,0 +1,29 @@
+name: Native Delta FrameTrace diagnostic build
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'diagnostics/native/**'
+      - '.github/workflows/build-delta-fps-native.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile arm64 iOS tweak with Xcode
+        shell: bash
+        run: bash diagnostics/native/build_mac.sh
+      - name: Check native output
+        shell: bash
+        run: |
+          file diagnostics/native/DeltaFrameTrace.dylib
+          xcrun vtool -show-build diagnostics/native/DeltaFrameTrace.dylib
+          shasum -a 256 diagnostics/native/DeltaFrameTrace.dylib
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DeltaFrameTrace-iOS-arm64-unsigned
+          path: diagnostics/native/DeltaFrameTrace.dylib
+          if-no-files-found: error
+
